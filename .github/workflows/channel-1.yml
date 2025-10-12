@@ -38,7 +38,7 @@ jobs:
     - name: Run Python script
       run: |
         pip install requests
-        python send_Telegram.py
+        python Miiguri_Video_Telegram.py
       env:
         channel_id: "-1001311708387"
         bot_token: ${{ secrets.bot_token }}
