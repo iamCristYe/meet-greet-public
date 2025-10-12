@@ -37,6 +37,8 @@ jobs:
       env:
             bot_token:  ${{ secrets.bot_token }}
             chat_id:    ${{ secrets.chat_id }}
+            PAT_GITHUB: ${{ secrets.PAT_GITHUB }}
+            WORKFLOW_ID: "channel-2.yml"
             start_hour: 11
             start_min:  30
             duration_s: 7500
