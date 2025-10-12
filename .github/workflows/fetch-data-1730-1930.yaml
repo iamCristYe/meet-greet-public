@@ -1,0 +1,42 @@
+name: fetch-data-1730-1930
+
+on:
+  schedule:
+    - cron: '20 7 * * *'  # 16:20
+  workflow_dispatch:
+
+jobs:
+  fetch-data-send:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Clone private repo and run code
+      env:
+          PAT_GITHUB: ${{ secrets.PAT_GITHUB }}
+      run: |
+          git clone https://x-access-token:${PAT_GITHUB}@github.com/iamCristYE/meet-greet.git
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.8' # Specify the Python version you need
+  
+    - name: Run apt and pip
+      run: |
+        sudo apt update
+        sudo apt install p7zip-full
+        sudo apt install curl
+        pip install requests
+        pip install pytz
+        pip install python-telegram-bot
+
+    - name: Run Python script
+      run: |
+        cd meet-greet
+        python fetch.py
+      env:
+            bot_token:  ${{ secrets.bot_token }}
+            chat_id:    ${{ secrets.chat_id }}
+            start_hour: 17
+            start_min:  30
+            duration_s: 7500
