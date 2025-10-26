@@ -30,7 +30,7 @@ jobs:
       run: |
         wget -O N_m3u8DL-RE.tar.gz https://github.com/nilaoda/N_m3u8DL-RE/releases/download/v0.3.0-beta/N_m3u8DL-RE_v0.3.0-beta_linux-x64_20241203.tar.gz
         tar -xzf N_m3u8DL-RE.tar.gz
-        ./N_m3u8DL-RE --live-real-time-merge "$m3u8_url" --save-name chunklist &
+        ./N_m3u8DL-RE --live-real-time-merge "$m3u8_url" --save-name chunklist.ts &
         # --live-keep-segments 
       env:
         m3u8_url: ${{ secrets.m3u8_url }}
