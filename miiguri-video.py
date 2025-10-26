@@ -51,7 +51,7 @@ def convert_ts_to_mp4():
     """
     将所有未转换的 .ts 文件转为 .mp4
     """
-    for ts_file in sorted([f for f in os.listdir() if f.endswith(".ts")]):
+    for ts_file in sorted([f for f in os.listdir() if ".ts" in f]):
         mp4_file = ts_file.rsplit(".", 1)[0] + ".mp4"
         if os.path.exists(mp4_file):
             continue
