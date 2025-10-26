@@ -205,8 +205,8 @@ if __name__ == "__main__":
             if elapsed > 9000:  # 2.5 hrs
                 print("⏱️ 2.5 hours elapsed — stopping.")
                 break
-            if idle_time > 900:  # 15 min
-                print("🕒 Idle 15 minutes — stopping.")
+            if idle_time > 9000:  # 2.5 hrs
+                print("🕒 Idle 2.5 hours — stopping.")
                 break
 
             time.sleep(20)
