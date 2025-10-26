@@ -3,6 +3,8 @@ import json
 import time
 import requests
 import subprocess
+import hashlib
+from urllib.parse import urlparse, unquote
 
 # === Environment variables ===
 TELEGRAM_BOT_TOKEN = os.environ["bot_token"]
@@ -11,14 +13,32 @@ M3U8_URL = os.environ["m3u8_url"]
 
 # === Constants ===
 SENT_JSON_FILE = "sent.json"
+MERGE_GROUP_SIZE = 5  # merge 5 segments into one
 
 
 # === Core functions ===
 
+def safe_ts_filename(ts_url: str) -> str:
+    """
+    Extracts a safe filename from a .ts URL, removing query parameters.
+    """
+    parsed = urlparse(ts_url)
+    filename = os.path.basename(parsed.path)
+    filename = unquote(filename)
+
+    if not filename.endswith(".ts"):
+        filename += ".ts"
+
+    if len(filename) > 80:
+        hashed = hashlib.md5(ts_url.encode()).hexdigest()[:8]
+        filename = f"segment_{hashed}.ts"
+
+    return filename
+
+
 def download_segments():
     """
     从 M3U8_URL 下载所有 .ts 片段，但不合并。
-    如果本地已存在同名文件则跳过。
     """
     print("Fetching playlist:", M3U8_URL)
     r = requests.get(M3U8_URL)
@@ -31,7 +51,7 @@ def download_segments():
 
     for ts_name in ts_urls:
         ts_url = ts_name if ts_name.startswith("http") else f"{base_url}/{ts_name}"
-        ts_file = os.path.basename(ts_name)
+        ts_file = safe_ts_filename(ts_url)
 
         if os.path.exists(ts_file):
             continue
@@ -47,24 +67,42 @@ def download_segments():
             time.sleep(2)
 
 
-def convert_ts_to_mp4():
+def merge_ts_to_mp4():
     """
-    将所有未转换的 .ts 文件转为 .mp4
+    每5个 .ts 文件合并为一个 .mp4 文件
+    使用第一个片段名（去除 ? 参数）作为 mp4 文件名
     """
-    for ts_file in sorted([f for f in os.listdir() if ".ts" in f]):
-        mp4_file = ts_file.rsplit(".", 1)[0] + ".mp4"
-        if os.path.exists(mp4_file):
+    ts_files = sorted([f for f in os.listdir() if f.endswith(".ts")])
+    groups = [ts_files[i:i + MERGE_GROUP_SIZE] for i in range(0, len(ts_files), MERGE_GROUP_SIZE)]
+
+    for group in groups:
+        if not group:
             continue
 
-        print(f"Converting {ts_file} → {mp4_file}")
+        first_ts = group[0]
+        mp4_name = first_ts.rsplit(".", 1)[0] + ".mp4"
+        if os.path.exists(mp4_name):
+            continue
+
+        # Create a temporary concat list file
+        list_file = "concat_list.txt"
+        with open(list_file, "w") as f:
+            for ts in group:
+                f.write(f"file '{ts}'\n")
+
+        print(f"Merging {len(group)} segments → {mp4_name}")
         cmd = [
             "ffmpeg",
             "-y",
-            "-i", ts_file,
+            "-f", "concat",
+            "-safe", "0",
+            "-i", list_file,
             "-c", "copy",
-            mp4_file
+            mp4_name,
         ]
         subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+        os.remove(list_file)
 
 
 def load_sent_status():
@@ -142,10 +180,9 @@ if __name__ == "__main__":
             before_files = set(os.listdir())
 
             download_segments()
-            convert_ts_to_mp4()
+            merge_ts_to_mp4()
             process_files()
 
-            # detect new files since last loop
             after_files = set(os.listdir())
             if after_files != before_files:
                 last_new_file_time = time.time()
