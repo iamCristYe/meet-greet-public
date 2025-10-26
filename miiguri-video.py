@@ -16,6 +16,7 @@ M3U8_URL = os.environ["m3u8_url"]
 SENT_JSON_FILE = "sent.json"
 MERGE_GROUP_SIZE = 5
 CHECK_INTERVAL = 5  # seconds between M3U8 polls
+MERGE_IDLE_LIMIT = 30  # seconds since last .ts update before merging smaller group
 
 # Shared data for background thread
 downloaded_ts = set()
@@ -92,13 +93,34 @@ def download_worker():
 
 
 def merge_ts_to_mp4():
-    """Merge every 5 .ts → one .mp4."""
+    """
+    Merge .ts → .mp4 dynamically:
+    - Wait for at least 5 files before merging.
+    - If <5 but idle for >MERGE_IDLE_LIMIT sec, merge remaining.
+    """
     ts_files = sorted([f for f in os.listdir() if f.endswith(".ts")])
+    if not ts_files:
+        return
+
+    # Determine oldest modification time
+    oldest_ts_time = min(os.path.getmtime(f) for f in ts_files)
+    idle_time = time.time() - oldest_ts_time
+
+    # Only merge if we have enough files OR idle for long
+    if len(ts_files) < MERGE_GROUP_SIZE and idle_time < MERGE_IDLE_LIMIT:
+        # Not enough files and not idle yet → wait
+        return
+
     groups = [ts_files[i:i + MERGE_GROUP_SIZE] for i in range(0, len(ts_files), MERGE_GROUP_SIZE)]
 
     for group in groups:
         if not group:
             continue
+
+        # Avoid merging if group too small and not idle long enough
+        if len(group) < MERGE_GROUP_SIZE and idle_time < MERGE_IDLE_LIMIT:
+            continue
+
         first_ts = group[0]
         mp4_name = first_ts.rsplit(".", 1)[0] + ".mp4"
         if os.path.exists(mp4_name):
@@ -110,10 +132,17 @@ def merge_ts_to_mp4():
                 f.write(f"file '{ts}'\n")
 
         print(f"🎞️ Merging {len(group)} segments → {mp4_name}")
-        cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", list_file, "-c", "copy", mp4_name]
+        cmd = [
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+            "-i", list_file, "-c", "copy", mp4_name
+        ]
         subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-
         os.remove(list_file)
+
+        # remove merged .ts
+        for ts in group:
+            if os.path.exists(ts):
+                os.remove(ts)
 
 
 def load_sent_status():
@@ -202,14 +231,14 @@ if __name__ == "__main__":
             elapsed = time.time() - start_time
             idle_time = time.time() - last_new_file_time
 
-            if elapsed > 9000:  # 2.5 hrs
+            if elapsed > 9000:
                 print("⏱️ 2.5 hours elapsed — stopping.")
                 break
-            if idle_time > 9000:  # 2.5 hrs
+            if idle_time > 9000:
                 print("🕒 Idle 2.5 hours — stopping.")
                 break
 
-            time.sleep(20)
+            time.sleep(10)
 
     finally:
         stop_flag = True
