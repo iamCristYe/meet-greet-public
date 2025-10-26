@@ -20,6 +20,8 @@ TELEGRAM_CHAT_ID = os.environ["channel_id"]
 # JSON 文件存储每个文件的状态（首次出现时间 + 是否已发送）
 SENT_JSON_FILE = "sent.json"
 
+LS_COMMAND = ["ls"]
+              
 
 # FFmpeg 命令
 FFMPEG_COMMAND = [
@@ -47,6 +49,12 @@ FFMPEG_COMMAND = [
 def run_ffmpeg():
     """运行 FFmpeg 命令并覆盖已有的 mp4 文件"""
     try:
+        subprocess.run(
+            LS_COMMAND,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
         subprocess.run(
             FFMPEG_COMMAND,
             stdout=subprocess.DEVNULL,
