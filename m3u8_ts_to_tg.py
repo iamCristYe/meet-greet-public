@@ -265,7 +265,7 @@ class M3U8TSToTG:
                     to_send_caption = (
                         file_path
                         if not self.caption_prefix
-                        else f"{self.caption_prefix}_{file_path}"
+                        else f"{self.caption_prefix}_{file_path.replace(self.work_dir + '/', '')}"
                     )
                     response = requests.post(
                         url,
