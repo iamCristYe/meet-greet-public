@@ -271,7 +271,7 @@ class M3U8TSToTG:
                         url,
                         data={
                             "chat_id": self.telegram_chat_id,
-                            "caption": to_send_caption,
+                            "caption": to_send_caption.replace('./',''),
                         },
                         files={"document": f},
                         timeout=120,
