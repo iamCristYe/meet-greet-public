@@ -2,7 +2,7 @@ name: fetch-data-1130-1330
 
 on:
   schedule:
-    - cron: '20 23 * * *'  # 8:20
+    - cron: '45 23 * * *'  # 8:45
   workflow_dispatch:
 
 jobs:
