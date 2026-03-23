@@ -13,8 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+    - name: Clone private repo and run code
+      env:
+          PAT_GITHUB: ${{ secrets.PAT_GITHUB }}
+      run: |
+          git clone https://x-access-token:${PAT_GITHUB}@github.com/iamCristYE/meet-greet.git
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -26,17 +29,9 @@ jobs:
         sudo apt install ffmpeg 
         ffmpeg -version
 
-#    - name: Download N_m3u8DL-RE and Stream
-#      run: |
-#        wget -O N_m3u8DL-RE.tar.gz https://github.com/nilaoda/N_m3u8DL-RE/releases/download/v0.3.0-beta/N_m3u8DL-RE_v0.3.0-beta_linux-x64_20241203.tar.gz
-#        tar -xzf N_m3u8DL-RE.tar.gz
-#       ./N_m3u8DL-RE --live-real-time-merge "${m3u8_url}" --save-name chunklist &#
-        # --live-keep-segments 
-#      env:
-#        m3u8_url: ${{ secrets.m3u8_url }}
-    
     - name: Run Python script
       run: |
+        cd meet-greet
         pip install requests
         python miiguri-video.py
       env:
